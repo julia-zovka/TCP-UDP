@@ -8,7 +8,7 @@ Esse projeto  é  um produto da disciplina "Redes de computadores", ministrada p
 - implementação de transferencia de pacotes utilizando protocolo UDP
 - troca de arquivos em pacotes de até 1024
 - exibição da mensagem"hi, meu nome eh {input}" para entrar na sala
-- "<IP>: <PORTA> /~<nome_usuario>: <mensagem> <hora-data>"  ao mandar mensagens
+- "IP: PORTA /~nome_usuario: mensagem hora-data"  ao mandar mensagens
 - "{nome} saiu da sala!" ao comunicar aos outros usuários quando alguém sai do chat
 - "Você nao está  mais conectado à sala!" mensagem que aparece no terminal do usuário que se desconectou 
 
