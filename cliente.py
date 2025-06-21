@@ -10,8 +10,11 @@ SERVER_IP = "127.0.0.1"
 SERVER_PORT = 12000
 BUFF_SIZE = 1024
 
-# Cria o socket UDP
+# Cria o socket  e atribi uma porta aleatória a ele
 client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#afnet--- ipv4
+#sockdgram----socket udp
+
 client.bind((SERVER_IP, random.randint(1000, 9998)))
 
 # Funcao de apresentacao simples
@@ -79,6 +82,7 @@ while True:
             print("Você nao está conectado à sala!")
         else:
             client.sendto(f"QUIT_TAG:{nickname}".encode(), (SERVER_IP, SERVER_PORT))
+            print("Você nao está  mais conectado à sala!")
             is_conected = False
 
     elif is_conected:
