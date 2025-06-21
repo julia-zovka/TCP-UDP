@@ -1,8 +1,8 @@
 import socket
 import random
-import threading
+import threading #cria threads, importante para programação paralela
 import math
-import struct
+import struct #interpretar e montar a estrututra dos pacotes 
 from zlib import crc32
 
 # Configuracoes do servidor
@@ -17,9 +17,11 @@ client.bind((SERVER_IP, random.randint(1000, 9998)))
 # Funcao de apresentacao simples
 def apresentacao():
     nome = input("Digite seu nome: ")
+    print(f"Oi {nome}, tudo bem?")
     print("\nPara entrar na sala, digite:")
-    print(f"hi, meu nome eh {nome}")
-    print("\nPara sair digite 'bye' \n")
+    print(f"-hi, meu nome eh {nome}")
+    print("\nPara sair da sala, digite:")
+    print("-bye \n")
     return nome, f"hi, meu nome eh {nome}"
 
 # Funcao para receber mensagens

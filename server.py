@@ -9,7 +9,6 @@ from datetime import datetime
 SERVER_IP = "0.0.0.0"
 SERVER_PORT = 12000
 
-
 BUFF_SIZE = 1024
 
 
@@ -117,7 +116,7 @@ def broadcast():
                 try:
                     if decoded_message.startswith("SIGNUP_TAG:"):
                         nickname = decoded_message[decoded_message.index(":")+1:]
-                        server.sendto(f"{nickname} se juntou ".encode(), client_ip)
+                        server.sendto(f"{nickname} se juntou, comece a conversar".encode(), client_ip)
 
                     elif decoded_message.startswith("QUIT_TAG:"):
                         nickname = decoded_message[decoded_message.index(":")+1:]
