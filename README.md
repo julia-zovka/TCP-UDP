@@ -2,7 +2,7 @@
 
 ## Sobre 
 
-O projeto se resume na construção de uma sala de bate papo, em que os usúarios conectados  podem trocar mensagens e conseguem ver quem entra e quem sai do chat.
+Esse projeto  é  um produto da disciplina "Redes de computadores", ministrada por Paulo Freitas de Araújo, no Centro de Informática da UFPE, e se resume na construção de uma sala de bate papo local, em que os usúarios conectados  trocam mensagens entre si  e conseguem ver quem entra e quem sai do chat.Os arquivos a seguir implemntam essa função por meio da um protocolo UDP.
 
 ## Especificidade
 - implementação de transferencia de pacotes utilizando protocolo UDP
@@ -17,6 +17,6 @@ O projeto se resume na construção de uma sala de bate papo, em que os usúario
 2. em outro terminal rodar cliente.py
 
 **obs:** 
--Para conectar múltiplos clientes é necessário rodar o cliente.py em multiplos terminais.
--Se desconectar um usuário da sala e quiser reconectar, é necessário rodar cliente.py em outro terminal.
+- Para conectar múltiplos clientes é necessário rodar o cliente.py em multiplos terminais.
+- Se desconectar um usuário da sala e quiser reconectar, é necessário rodar cliente.py em outro terminal.
 
