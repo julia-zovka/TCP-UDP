@@ -13,8 +13,9 @@ O projeto se resume na construção de uma sala de bate papo, em que os usúario
 - "Você nao está  mais conectado à sala!" mensagem que aparece no terminal do usuário que se desconectou 
 
 ## Como funciona?
-1- rodar em um terminal o arquivo server.py 
-2- em outro terminal rodar cliente.py
+1. rodar em um terminal o arquivo server.py 
+2. em outro terminal rodar cliente.py
+
 **obs**: Para conectar múltiplos clientes é necessário rodar o cliente.py em multiplos terminais
 **obs**:Se desconectar um usuário da sala e quiser reconectar, é necessário rodar cliente.py em outro terminal.
 
