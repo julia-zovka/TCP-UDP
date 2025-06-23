@@ -6,18 +6,22 @@ import struct #interpretar e montar a estrututra dos pacotes
 from zlib import crc32
 
 # Configuracoes do servidor
+
 SERVER_IP = "127.0.0.1"
 SERVER_PORT = 12000
 BUFF_SIZE = 1024
 
 # Cria o socket  e atribi uma porta aleatória a ele
+
 client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 #afnet--- ipv4
 #sockdgram----socket udp
-
 client.bind((SERVER_IP, random.randint(1000, 9998)))
 
+
+
 # Funcao de apresentacao simples
+
 def apresentacao():
     nome = input("Digite seu nome: ")
     print(f"Oi {nome}, tudo bem?")
@@ -27,31 +31,53 @@ def apresentacao():
     print("-bye \n")
     return nome, f"hi, meu nome eh {nome}"
 
+
+
 # Funcao para receber mensagens
+
 def receive():
     while True:
         try:
             message, _ = client.recvfrom(BUFF_SIZE)
-            print(message.decode(encoding="ISO-8859-1"))
+            print(message.decode(encoding="ISO-8859-1").strip())
         except:
             pass
 
-# Funcao para criar arquivo .txt (se estiver usando)
+
+# Funcao para criar arquivo .txt, so guarda a mensagem mais recente
+
 def convert_string_to_txt(nickname, message):
     filename = f"{nickname}.txt"
     with open(filename, "w", encoding="utf-8") as file:
         file.write(message)
     return filename
 
+
 # Funcao para criar fragmento com header (se estiver usando fragmentacao)
-def create_fragment(contents, frag_size, frag_index, frag_count):
+
+"""def create_fragment(contents, frag_size, frag_index, frag_count):
     data = bytearray()
     data.extend(contents[:frag_size])
     crc = crc32(data)
     header = struct.pack('!IIII', frag_size, frag_index, frag_count, crc)
-    return header + data
+    return header + data"""
+
+
+def create_fragment(contents, frag_size, frag_index, frag_count):
+    # Calcula a posição inicial e final do fragmento
+    start = frag_index * frag_size
+    end = start + frag_size
+    fragment_data = contents[start:end]
+    actual_size = len(fragment_data)
+    # Calcula CRC apenas dos dados do fragmento
+    crc = crc32(fragment_data)
+    # Monta o cabeçalho (tamanho real, índice, total, crc)
+    header = struct.pack('!IIII', actual_size, frag_index, frag_count, crc)
+    return header + fragment_data
+
 
 # Inicia thread de recebimento
+
 receive_thread = threading.Thread(target=receive)
 receive_thread.start()
 
@@ -69,43 +95,45 @@ while True:
 
     client_ip = client.getsockname()[0]
 
-#### CONECTAR O CLIENTE NO SERVIDOR
+#### conecta cliente na sala
 
     if message.startswith("hi, meu nome eh "):
         if is_conected:
-            print("Você já está conectado à sala!")
+            print("Calma jovem, você já está conectado à sala!")
         else:
             nickname = message[16:]
             is_conected = True
             client.sendto(f"SIGNUP_TAG:{nickname}".encode(), (SERVER_IP, SERVER_PORT))
 
-### DESCONECTAR O CLIENTE DO SERVIDOR, SAIR DA SALA
+### desconecta cliente do servidor, sai da sala
 
     elif message == "bye":
         if not is_conected:
-            print("Você nao está conectado à sala!")
+            print("Você não está conectado à sala!, pra sair precisa entrar né, assim não dá")
         else:
             client.sendto(f"QUIT_TAG:{nickname}".encode(), (SERVER_IP, SERVER_PORT))
-            print("Você nao está  mais conectado à sala!")
+            print("Você não está  mais conectado à sala!, até a próxima")
             is_conected = False
 
 
-### MANDANDO MENSAGENS
+### mandando mensagens
 
     elif is_conected:
-        path_file = convert_string_to_txt(nickname, message) # cria o txt contendo a mensagem  mais recente do usuario 
-        with open(path_file, "rb") as file:
+        temp_file = convert_string_to_txt(nickname, message) # cria o txt contendo a mensagem  mais recente do usuario 
+        with open(temp_file, "rb") as file:
             contents = file.read()
 
-        frag_size = BUFF_SIZE - 16
-        frag_index = 0
+        ## calcula qunatos fragmento por mensagem
+        frag_size = BUFF_SIZE - 16 ##  16 são os bytes do cabeçalho
         frag_count = math.ceil(len(contents) / frag_size)
 
-        while contents:
+        # Envia cada fragmento
+        for frag_index in range(frag_count):
             fragment = create_fragment(contents, frag_size, frag_index, frag_count)
             client.sendto(fragment, (SERVER_IP, SERVER_PORT))
-            contents = contents[frag_size:]
-            frag_index += 1
+            
+            # Pequeno delay para evitar congestionamento
+            ##time.sleep(0.001)
 
     else:
         print("Comando inválido!")

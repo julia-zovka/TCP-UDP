@@ -3,12 +3,13 @@ import queue
 import threading
 import struct
 from datetime import datetime
+from zlib import crc32
+
 
 
 # Configuracoes do servidor
 SERVER_IP = "0.0.0.0"
 SERVER_PORT = 12000
-
 BUFF_SIZE = 1024
 
 
@@ -22,12 +23,12 @@ server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server.bind((SERVER_IP, SERVER_PORT))
 
 
-# Funcao para salvar mensagem em .txt
+# Funcao para salvar mensagem em .txt é para guardar o histórico das mensagens recebidas pelo servidor e fazer um log de toda conversa da sala
 
 def convert_string_to_txt(nickname, message):
-    filename = f"{nickname}_server.txt"
-    with open(filename, "w", encoding="utf-8") as file:
-        file.write(message)
+    filename = f"{nickname}_server_log.txt"
+    with open(filename, "a", encoding="utf-8") as file:
+        file.write(message + "\n")
     return filename
 
 
@@ -38,7 +39,7 @@ def get_current_time_and_date():
     return now.strftime("%H:%M:%S %d/%m/%Y")
 
 
-# Funcao para remover cliente
+# Funcao para remover cliente ao sair da sala
 
 def remove_client(client):
     index_client = clients_ip.index(client)
@@ -49,56 +50,60 @@ def remove_client(client):
 # Thread para receber mensagens
 
 def receive():
-    received_chunks = 0
-    rec_list = []
+    fragments = {}
+    chunks_count = {}
+    expected_chunks = {}
 
     while True:
         try:
             message_received_bytes, address_ip_client = server.recvfrom(BUFF_SIZE)
 
-            if (message_received_bytes.decode().startswith("SIGNUP_TAG:") or
-                message_received_bytes.decode().startswith("QUIT_TAG:")):
+            # Mensagens de controle (não fragmentadas)
+            if (message_received_bytes.decode(errors="ignore").startswith("SIGNUP_TAG:") or
+                message_received_bytes.decode(errors="ignore").startswith("QUIT_TAG:")):
                 messages.put((message_received_bytes, address_ip_client))
-            else:
-                raise NameError('MESSAGE_TAG')
+                continue
 
-        except:
+            # Fragmentos
             header = message_received_bytes[:16]
-            message_received_bytes = message_received_bytes[16:]
-            (frag_size, frag_index, frag_count, crc) = struct.unpack('!IIII', header)
+            fragment = message_received_bytes[16:]
+            frag_size, frag_index, frag_count, crc = struct.unpack('!IIII', header)
 
-            if len(rec_list) < frag_count:
-                need_to_add = frag_count - len(rec_list)
-                rec_list.extend([''] * need_to_add)
+            # Inicializa listas para o cliente se necessário
+            if address_ip_client not in fragments:
+                fragments[address_ip_client] = [b''] * frag_count
+                chunks_count[address_ip_client] = 0
 
-            rec_list[frag_index] = message_received_bytes
-            received_chunks += 1
+            fragments[address_ip_client][frag_index] = fragment
+            chunks_count[address_ip_client] += 1
 
-            if received_chunks == frag_count:
+            # Se recebeu todos os fragmentos
+            if chunks_count[address_ip_client] == frag_count:
+                content = b''.join(fragments[address_ip_client])
+                name = ""
                 for ip in clients_ip:
                     if ip == address_ip_client:
                         index = clients_ip.index(ip)
                         name = clients_nickname[index]
                         break
 
-                content = b''.join(rec_list)
-                content = content.decode(encoding="ISO-8859-1")
-                path_file = convert_string_to_txt(name, content)
+                content_decoded = content.decode(encoding="ISO-8859-1")
+                path_file = convert_string_to_txt(name, content_decoded)
 
-                with open(path_file, "r") as arquivo:
-                    message = f"{name}: {arquivo.read()}".encode()
-
-                messages.put((message, address_ip_client))
-
-                received_chunks = 0
-                rec_list = []
-
-            elif (received_chunks < frag_count) and (frag_index == frag_count - 1):
-                print("Houve perda de pacote!")
-                received_chunks = 0
-                rec_list = []
+                with open(path_file, "r", encoding="utf-8") as arquivo:
+                    lines = arquivo.readlines()
+                    last_message=lines[-1].strip() if lines else ""
+                    message = f"{name}: {last_message}".encode(encoding="ISO-8859-1")
+                    messages.put((message, address_ip_client))
 
 
+                # Limpa para próxima mensagem
+                del fragments[address_ip_client]
+                del chunks_count[address_ip_client]
+
+        except Exception as e:
+            print("Erro ao receber fragmento:", e)
+            
 # Thread para enviar mensagens
 
 def broadcast():
@@ -114,21 +119,25 @@ def broadcast():
 
             for client_ip in clients_ip:
                 try:
+                    ### usuário entra na sala
                     if decoded_message.startswith("SIGNUP_TAG:"):
                         nickname = decoded_message[decoded_message.index(":")+1:]
                         server.sendto(f"{nickname} se juntou, comece a conversar".encode(), client_ip)
 
+                    ### usuário saiu da sala, tira da lista de clientes
                     elif decoded_message.startswith("QUIT_TAG:"):
                         nickname = decoded_message[decoded_message.index(":")+1:]
                         remove_client(client_ip)
                         server.sendto(f"{nickname} saiu da sala!".encode(), client_ip)
-
+                    
+                    ### se comunicando na sala
                     else:
                         ip = address_ip_client[0]
                         port = address_ip_client[1]
                         message_output = f'{ip}:{port}/~{decoded_message} {get_current_time_and_date()}'
-                        server.sendto(message_output.encode(encoding='ISO-8859-1'), client_ip)
-
+                        resposta = message_output.encode(encoding='ISO-8859-1')
+                        for i in range(0, len(resposta), BUFF_SIZE):
+                            server.sendto(resposta[i:i+BUFF_SIZE], client_ip)
                 except:
                     remove_client(client_ip)
 

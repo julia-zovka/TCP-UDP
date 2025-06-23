@@ -25,3 +25,10 @@ Esse projeto  é  um produto da disciplina "Redes de computadores", ministrada p
 - Para conectar múltiplos clientes é necessário rodar o cliente.py em multiplos terminais.
 - Se desconectar um usuário da sala e quiser reconectar, é necessário rodar cliente.py em outro terminal.
 
+## Contribuintes
+- Júlia Zovka de Souza
+- Letícia de Albuquerque Souza Leitão 
+- João Paulo Oliveira Nolasco
+
+    ### Contato
+    [Júlia Zovka de Souza - Linkedin](https://www.linkedin.com/in/j%C3%BAlia-zovka-de-souza-a4731235a/)
