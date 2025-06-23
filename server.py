@@ -68,17 +68,24 @@ def receive():
             header = message_received_bytes[:16]
             fragment = message_received_bytes[16:]
             frag_size, frag_index, frag_count, crc = struct.unpack('!IIII', header)
+            
+            # Verifica CRC, checar integridade do fragmento
+            if crc32(fragment) != crc:
+                continue
 
             # Inicializa listas para o cliente se necessário
             if address_ip_client not in fragments:
                 fragments[address_ip_client] = [b''] * frag_count
                 chunks_count[address_ip_client] = 0
+                expected_chunks[address_ip_client] = frag_count
 
-            fragments[address_ip_client][frag_index] = fragment
-            chunks_count[address_ip_client] += 1
+            # armazena os novos frags
+            if fragments[address_ip_client][frag_index] is None:
+                fragments[address_ip_client][frag_index] = fragment
+                chunks_count[address_ip_client] += 1
 
             # Se recebeu todos os fragmentos
-            if chunks_count[address_ip_client] == frag_count:
+            if chunks_count[address_ip_client] == expected_chunks[address_ip_client]:
                 content = b''.join(fragments[address_ip_client])
                 name = ""
                 for ip in clients_ip:
@@ -87,14 +94,14 @@ def receive():
                         name = clients_nickname[index]
                         break
 
-                content_decoded = content.decode(encoding="ISO-8859-1")
+                content_decoded = content.decode("utf-8")
                 path_file = convert_string_to_txt(name, content_decoded)
 
                 with open(path_file, "r", encoding="utf-8") as arquivo:
                     lines = arquivo.readlines()
                     last_message=lines[-1].strip() if lines else ""
-                    message = f"{name}: {last_message}".encode(encoding="ISO-8859-1")
-                    messages.put((message, address_ip_client))
+                    message = f"{name}: {last_message}".encode("utf-8")
+                    messages.put((message, address_ip_client))## joga na fila de mensagens
 
 
                 # Limpa para próxima mensagem
@@ -110,7 +117,7 @@ def broadcast():
     while True:
         while not messages.empty():
             message_bytes, address_ip_client = messages.get()
-            decoded_message = message_bytes.decode(encoding="ISO-8859-1")
+            decoded_message = message_bytes.decode(encoding="utf-8")
 
             if address_ip_client not in clients_ip:
                 name = decoded_message[decoded_message.index(":")+1:]
@@ -135,7 +142,7 @@ def broadcast():
                         ip = address_ip_client[0]
                         port = address_ip_client[1]
                         message_output = f'{ip}:{port}/~{decoded_message} {get_current_time_and_date()}'
-                        resposta = message_output.encode(encoding='ISO-8859-1')
+                        resposta = message_output.encode("utf-8")
                         for i in range(0, len(resposta), BUFF_SIZE):
                             server.sendto(resposta[i:i+BUFF_SIZE], client_ip)
                 except:

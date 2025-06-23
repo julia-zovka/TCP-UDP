@@ -39,7 +39,7 @@ def receive():
     while True:
         try:
             message, _ = client.recvfrom(BUFF_SIZE)
-            print(message.decode(encoding="ISO-8859-1").strip())
+            print(message.decode("utf-8").strip())
         except:
             pass
 
@@ -54,14 +54,6 @@ def convert_string_to_txt(nickname, message):
 
 
 # Funcao para criar fragmento com header (se estiver usando fragmentacao)
-
-"""def create_fragment(contents, frag_size, frag_index, frag_count):
-    data = bytearray()
-    data.extend(contents[:frag_size])
-    crc = crc32(data)
-    header = struct.pack('!IIII', frag_size, frag_index, frag_count, crc)
-    return header + data"""
-
 
 def create_fragment(contents, frag_size, frag_index, frag_count):
     # Calcula a posição inicial e final do fragmento
