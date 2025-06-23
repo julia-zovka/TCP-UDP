@@ -69,6 +69,8 @@ while True:
 
     client_ip = client.getsockname()[0]
 
+#### CONECTAR O CLIENTE NO SERVIDOR
+
     if message.startswith("hi, meu nome eh "):
         if is_conected:
             print("Você já está conectado à sala!")
@@ -76,6 +78,8 @@ while True:
             nickname = message[16:]
             is_conected = True
             client.sendto(f"SIGNUP_TAG:{nickname}".encode(), (SERVER_IP, SERVER_PORT))
+
+### DESCONECTAR O CLIENTE DO SERVIDOR, SAIR DA SALA
 
     elif message == "bye":
         if not is_conected:
@@ -85,8 +89,11 @@ while True:
             print("Você nao está  mais conectado à sala!")
             is_conected = False
 
+
+### MANDANDO MENSAGENS
+
     elif is_conected:
-        path_file = convert_string_to_txt(nickname, message)
+        path_file = convert_string_to_txt(nickname, message) # cria o txt contendo a mensagem  mais recente do usuario 
         with open(path_file, "rb") as file:
             contents = file.read()
 

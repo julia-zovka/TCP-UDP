@@ -4,6 +4,11 @@
 
 Esse projeto  é  um produto da disciplina "Redes de computadores", ministrada por Paulo Freitas de Araújo, no Centro de Informática da UFPE, e se resume na construção de uma sala de bate papo local, em que os usúarios conectados  trocam mensagens entre si  e conseguem ver quem entra e quem sai do chat.Os arquivos a seguir implemntam essa função por meio da um protocolo UDP.
 
+## Estrutura de Arquivos
+
+- server.py: Código do servidor que gerencia a comunicação entre os clientes.
+- client.py: Código do cliente que permite aos usuários enviar e receber mensagens.
+
 ## Especificidade
 - implementação de transferencia de pacotes utilizando protocolo UDP
 - troca de arquivos em pacotes de até 1024
