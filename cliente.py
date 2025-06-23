@@ -36,13 +36,48 @@ def apresentacao():
 # Funcao para receber mensagens
 
 def receive():
+    buffer = {}
+    
     while True:
         try:
-            message, _ = client.recvfrom(BUFF_SIZE)
-            print(message.decode("utf-8").strip())
-        except:
-            pass
+            data, _ = client.recvfrom(BUFF_SIZE)
 
+            # ve se mensagens entrada/saída
+            try:
+                text = data.decode("utf-8")
+                if "se juntou" in text or "saiu da sala" in text:
+                    print(text.strip())
+                    continue
+            except:
+                pass 
+
+            # Processa fragmento
+            header, fragment = data[:16], data[16:]
+            size, index, total, crc = struct.unpack("!IIII", header)
+
+            if crc32(fragment) != crc:
+                print("[ERRO] Fragmento corrompido (CRC inválido)")
+                continue
+
+            # Inicializa buffer da mensagem se necessário para reconstruir e guardar nas posiscoes certas
+            if "frags" not in buffer:
+                buffer["frags"] = [None] * total
+                buffer["recebidos"] = 0
+
+            # Armazena fragmento
+            if buffer["frags"][index] is None:
+                buffer["frags"][index] = fragment
+                buffer["recebidos"] += 1
+
+            # Se recebeu todos, junta e imprime
+            if buffer["recebidos"] == total:
+                msg = b''.join(buffer["frags"]).decode("utf-8")
+                print(msg)
+                buffer.clear()  # Limpa para próxima mensagem
+
+        except Exception as e:
+            print(f"[ERRO NO CLIENTE] Falha ao receber mensagem: {e}")
+    
 
 # Funcao para criar arquivo .txt, so guarda a mensagem mais recente
 
@@ -101,7 +136,7 @@ while True:
 
     elif message == "bye":
         if not is_conected:
-            print("Você não está conectado à sala!, pra sair precisa entrar né, assim não dá")
+            print("Você não está conectado à sala! para sair precisa entrar chefe!")
         else:
             client.sendto(f"QUIT_TAG:{nickname}".encode(), (SERVER_IP, SERVER_PORT))
             print("Você não está  mais conectado à sala!, até a próxima")
