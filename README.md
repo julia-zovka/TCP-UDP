@@ -33,3 +33,5 @@ Esse projeto  é  um produto da disciplina "Redes de computadores", ministrada p
 
     ### Contato
     [Júlia Zovka de Souza - Linkedin](https://www.linkedin.com/in/j%C3%BAlia-zovka-de-souza-a4731235a/)
+    [João Paulo Oliveira Nolasco - Linkedin](https://www.linkedin.com/in/joaonolasco10/)
+     
