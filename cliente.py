@@ -26,9 +26,9 @@ def apresentacao():
     nome = input("Digite seu nome: ")
     print(f"Oi {nome}, tudo bem?")
     print("\nPara entrar na sala, digite:")
-    print(f"-hi, meu nome eh {nome}")
+    print(f"' hi, meu nome eh {nome} '")
     print("\nPara sair da sala, digite:")
-    print("-bye \n")
+    print("' bye ' \n")
     return nome, f"hi, meu nome eh {nome}"
 
 
