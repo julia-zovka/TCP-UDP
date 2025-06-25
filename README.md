@@ -18,8 +18,8 @@ Esse projeto  é  um produto da disciplina "Redes de computadores", ministrada p
 - "Você nao está  mais conectado à sala!" mensagem que aparece no terminal do usuário que se desconectou 
 
 ## Como funciona?
-1. Rodar em um terminal o arquivo server.py 
-2. Em outro terminal rodar cliente.py
+1. Rodar em um terminal o arquivo server.py (use `python server.py`)
+2. Em outro terminal rodar cliente.py (use `python cliente.py`)
 
 **obs:** 
 - Para conectar múltiplos clientes é necessário rodar o cliente.py em multiplos terminais.
@@ -34,4 +34,5 @@ Esse projeto  é  um produto da disciplina "Redes de computadores", ministrada p
     ### Contato
     - [Júlia Zovka de Souza - Linkedin](https://www.linkedin.com/in/j%C3%BAlia-zovka-de-souza-a4731235a/)
     - [João Paulo Oliveira Nolasco - Linkedin](https://www.linkedin.com/in/joaonolasco10/)
+    - [Letícia de Albuquerque Souza Leitão](https://www.linkedin.com/in/leticialevleitao/)
      
