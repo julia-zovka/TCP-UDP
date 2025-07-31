@@ -8,6 +8,7 @@ import math
 
 from utils.checksum import find_checksum
 from utils.sending_pkts import send_packet
+import utils.variables as g 
 
 
 # Configuracoes do servidor
@@ -62,8 +63,7 @@ def receive():
     rec_chunks=[] # lista dos chunks recebidos
 
     global final_ack
-    global ACK_received
-    ACK_reveived=False
+    g.ACK_received ## setado inicialmente em false
 
     while True:
     
@@ -82,9 +82,10 @@ def receive():
         checksum=bin(checksum)[2:]
         checksum='0'*(len(checksum_check)- len(checksum)) + checksum # adiciona zeros a esquerda
 
-        decoded_message = message_received_bytes.decode("utf-8", errors="ignore")
+        decoded_message = fragment.decode("utf-8", errors="ignore")
+
         if (decoded_message=="SYN"):
-            print(f'estou enviando o SYN-ACK')
+            print(f'enviando o SYN-ACK')
             messages.put((message_received_bytes, address_ip_client))
             send_packet("SYN-ACK", server, address_ip_client, None, f"3-way-handshake-{address_ip_client}", seq_num, ack_num)
             ###### decidir qual ainda
@@ -93,10 +94,10 @@ def receive():
             # Inicializa listas para o cliente se necessário
             if address_ip_client not in clients_ip:
                 clients_ip.append(address_ip_client)
+                nickname=decoded_message.split("eh ")[1]
                 clients_nickname.append(nickname)
                 seq_ack_control.append([0,0])
                 index=clients_ip.index(address_ip_client)
-                nickname=decoded_message.split("eh ")[1]
 
             else:
                 index= clients_ip.index(address_ip_client)
@@ -104,39 +105,41 @@ def receive():
 
 
             if seq_ack_control:# se tiver algo na lista
-                curr_seq=seq_ack_control[index][0]
+                curr_seq=seq_ack_control[index][0]## o seq number o pacote que o servidor mando com o akc do ultimo recebido
                 curr_ack=seq_ack_control[index][1]
 
                 if decoded_message=="ACK":## recebeu a confirmacao do fyn ack que tinha enviado
                     final_ack=True
                     print("Vou fechar a conexão agora")
                 elif decoded_message: ##  tem algo pra mandar de algum cliente pro chat agora vai checar o checksum e seq_number
-                    if checksum !=checksum_check or seq_num!=curr_ack:
+                    expected_seq = 1-curr_ack
+                    if checksum != checksum_check or seq_num != expected_seq:## teve algum erro
                         if checksum!=checksum_check:
                             print("Houve corrupção no pacote, ele terá que ser reenviado")
 
-                        if curr_ack==0:## curr ack= ultimo ack que o servidor mandou
-                            send_packet('',server, address_ip_client,SERVER_IP, nickname, seq_num, 1 )
-                        else:
-                            send_packet('',server, address_ip_client,SERVER_IP, nickname, seq_num, 0 )
-
+                        ## reenvio do ultimo ack
+                        send_packet('',server, address_ip_client,SERVER_IP, nickname, seq_num, curr_ack )
                         #zerando a lista de fragmentos
                         rec_chunks=[]
                         chunks_count=0
                     
                     else:## tem mensagem e nao teve erro, irá mandar o ack para o cliente e a respectiva mensagem prara o chat
-                        if decoded_message=="bye":
-                            print("vou enviar o FYN-ACK")
-                            send_packet("FYN-ACK", server, address_ip_client, SERVER_IP, nickname, seq_num, curr_ack)
-                        else:
-                            print("enviando ACK da mensagem ")
-                            send_packet('', server, address_ip_client, SERVER_IP, nickname, seq_num, curr_ack)
-
+                        
                         # Atualiza próximo ack a ser enviado
                         if curr_ack == 0:
                             seq_ack_control[index][1] = 1
                         else:
                             seq_ack_control[index][1] = 0
+
+
+                        if decoded_message=="bye":
+                            print("vou enviar o FYN-ACK")
+                            seq_ack_control[index][0] = 1-curr_seq ## atualizar curr_seq (seq do servidor para enviar): uma nova mensagem (não só um ACK vazio).
+                            send_packet("FYN-ACK", server, address_ip_client, SERVER_IP, nickname, seq_num, curr_ack)## ja vai com o ack certo,m novo 
+                        else:
+                            print("enviando ACK da mensagem ")
+                            send_packet('', server, address_ip_client, SERVER_IP, nickname, seq_num, curr_ack)
+
 
                         ## adiciona fragcount posiçoes vazias na lista de fragmentos recebidos
                         if(len(rec_chunks)<frag_count):
@@ -166,17 +169,16 @@ def receive():
                                 messages.put((message, address_ip_client, nickname))## joga na fila de mensagens
 
 
-                            # Limpa para próxima mensagem
+                            # Limpa para óxima mensagem
                             rec_chunks=[]
                             chunks_count=0
-                else:# caso pacote de reconhecimento,sem mensagem
+                else:# caso pacote de reconhecimento,o cliente reconhecendo o broadcast por exemplo
                     if checksum !=checksum or ack_num!=curr_seq:#reenvio do ultimo pacote, teve algum erro
                         if checksum != checksum_check:
                             print(f"Houve corrupção no pacote!")
                     else: # Recebe ack do pacote recebido e atualiza próximo número de sequência a ser enviado
                     
-                        ACK_reveived= True # Afirma que recebeu ack
-                    
+                        g.ACK_received= True # Afirma que recebeu ack
                         print(f'Recebeu ACK do pacote!')
 
                         if curr_seq == 0:
@@ -212,7 +214,7 @@ def broadcast():
                     ### se comunicando na sala, mensagens
                     else:
                         ip, port = address_ip_client
-                        message_output = f'{ip}:{port}/~{name}:{decoded_message} {get_current_time_and_date()}'
+                        message_output = f'{ip}:{port}/~{nickname}:{decoded_message} {get_current_time_and_date()}'
                         print(f'Enviando mensagem do usuário {nickname} para cliente {name}!')
                         send_packet(message_output, server, client_ip, SERVER_IP, name, curr_seq, curr_ack)
                 
@@ -232,8 +234,11 @@ broadcast_tread = threading.Thread(target=broadcast)
 
 receive_tread.start()
 broadcast_tread.start()
+pr
 
-
-
+## address_ip_client isso é uma tupla
 
 ### ajeitar o adres do server nas funcoes de send
+
+
+##ajeitar os curr ack e curr seq quanod manda os pacots

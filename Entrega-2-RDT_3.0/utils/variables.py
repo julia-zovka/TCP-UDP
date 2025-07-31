@@ -1,0 +1,2 @@
+TIMEOUT = 0.5
+ACK_RECEIVED = False

@@ -1,14 +1,17 @@
-from utils.create_fragment import create_fragment
-from utils.convert_txt import convert_string_to_txt
-import utils.constants as c
+###from src.server import create_fragment
+from server import convert_string_to_txt 
+import utils.variables as g
 import math
 import time
+
+from utils.create_frag import  create_fragment
+
 
 def send_packet(message, sender, destination_address, origin_adress=None, nickname=None, seq_num=None, ack_num=None):
     fragment_sent = True # Controle do status de envio do fragmento
     
     # Converte a mensagem em um arquivo txt
-    if not origin_adress:
+    if origin_adress==None:
         path_file = convert_string_to_txt(message, nickname, True) # SERVER sending
     else:
         path_file = convert_string_to_txt(message, nickname) # CLIENT sending
@@ -51,14 +54,15 @@ def send_packet(message, sender, destination_address, origin_adress=None, nickna
                     sender.sendto(fragment, (destination_address)) # Envia o fragmento (header + data) para cliente
 
                 # Aguarda até que c.ACK_RECEIVED seja True
-                while not c.ACK_RECEIVED:
-                    if time_of_last_pkt + c.TIMEOUT < time.time():
+                while not g.ACK_RECEIVED:
+                    if time_of_last_pkt + g.TIMEOUT < time.time():
                         print("O envio da mensagem excedeu o tempo limite!")
                         fragment_sent = False
                     pass
 
                 if fragment_sent:
-                    c.ACK_RECEIVED = False # Reseta status do ack
+                    
+                    g.ACK_RECEIVED = False # Reseta status do ack
                     contents = contents[fragSize:] # Remove o fragmento enviado do conteúdo
                     fragIndex += 1 # Incrementa o índice do fragmento
                 
