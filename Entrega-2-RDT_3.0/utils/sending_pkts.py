@@ -1,9 +1,9 @@
 ###from src.server import create_fragment
 from server import convert_string_to_txt 
 import utils.variables as g
+import utils.constants as c
 import math
 import time
-
 from utils.create_frag import  create_fragment
 
 
@@ -31,7 +31,7 @@ def send_packet(message, sender, destination_address, origin_adress=None, nickna
         if origin_adress:
             sender.sendto(fragment, (origin_adress, destination_address)) # Envia o fragmento (header + data) para servidor
         else:
-            sender.sendto(fragment, (destination_address)) # Envia o fragmento (header + data) para cliente
+            sender.sendto(fragment, (c.SERVER_IP, destination_address)) # Envia o fragmento (header + data) para cliente
 
     else: # Se pacote enviado for com conteúdo
         if message == "FYN-ACK" or message == "ACK" or message == "SYN" or message == "SYN-ACK": # Se for pacote de reconhecimento de finalização
