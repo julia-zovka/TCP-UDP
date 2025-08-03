@@ -27,6 +27,8 @@ seq_ack_control= []
 
 server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server.bind((SERVER_IP, SERVER_PORT))
+print(f"[{datetime.now().strftime('%H:%M:%S')}] Servidor conectado em {SERVER_IP}:{SERVER_PORT}")
+
 
 final_ack=False # checar se fim ack foi recebido pelo cliente
 
