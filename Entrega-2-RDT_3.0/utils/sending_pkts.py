@@ -9,7 +9,7 @@ def send_packet(message, sender, destination_address, origin_adress=None, nickna
     fragment_sent = True # Controle do status de envio do fragmento
     
     # Converte a mensagem em um arquivo txt
-    if origin_adress==c.SERVER_ADRR:
+    if origin_adress==c.SERVER_ADDR:
         path_file = convert_string_to_txt(message, nickname, True) # SERVER sending
     else:
         path_file = convert_string_to_txt(message, nickname) # CLIENT sending
@@ -33,10 +33,7 @@ def send_packet(message, sender, destination_address, origin_adress=None, nickna
 
         while True: 
 
-            if origin_adress:
-                sender.sendto(fragment, (origin_adress, destination_address)) # Envia o fragmento (header + data) para servidor
-            else:
-                sender.sendto(fragment, (destination_address)) # Envia o fragmento (header + data) para cliente
+            sender.sendto(fragment, destination_address)
 
             time_sent = time.time()
 
