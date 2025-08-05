@@ -16,7 +16,7 @@ def send_packet(message, sender, destination_address, origin_adress=None, nickna
         path_file = convert_string_to_txt(message, nickname) # CLIENT sending
     # Lendo o conteudo do arquivo
     with open(path_file,"rb") as file:
-    contents = file.read()
+        contents = file.read()
 
     #fragmentando o arquivo em diversas partes
     fragSize = c.FRAG_SIZE # Tamanho do fragmento 
@@ -26,9 +26,9 @@ def send_packet(message, sender, destination_address, origin_adress=None, nickna
 
     ### criacao dos fragmentos
     for frag_index in range(fragCount):
-        fragment_data = contents[frag_index * frag_size: (frag_index + 1) * frag_size]
+        fragment_data = contents[frag_index * fragSize: (frag_index + 1) * fragSize]
 
-        fragment = create_fragment(fragment_data, frag_size, frag_index, frag_count, seq_num, ack_num)
+        fragment = create_fragment(fragment_data, fragSize, frag_index, frag_count, seq_num, ack_num)
 
 
 

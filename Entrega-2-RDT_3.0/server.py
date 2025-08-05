@@ -106,7 +106,7 @@ def receive():
         
         ## pacote válido: envia ACK e alterna ack esperado
         new_ack = expected_seq
-        send_packet('', server, address_ip_client, SERVER_IP, nickname, seq_num, new_ack)
+        send_packet('', server, address_ip_client,g.SERVER_ADRR, nickname, seq_num, new_ack)
         seq_ack_control[index][1] = new_ack
 
 
@@ -144,7 +144,7 @@ def receive():
 
 
         # Atualiza proximo seq_num a ser enviado
-        c.ACK_RECEIVED = True
+        g.ACK_RECEIVED = True
         seq_ack_control[index][0] = 1 - curr_seq
 
 
