@@ -64,15 +64,13 @@ def receive():
         # Fragmentos e desempacotando o header
         header = message_received_bytes[:24]
         fragment = message_received_bytes[24:]
-        frag_size, frag_index, frag_count, seq_num, ack_num, checksum = struct.unpack('!IIII', header)
+        frag_size, frag_index, frag_count, seq_num, ack_num, checksum = struct.unpack('!IIIIII', header)
 
         header_no_checksum = struct.pack('!IIIII', frag_size, frag_index, frag_count, seq_num, ack_num) # Criando um header sem o checksum, para fazer a verificação de checksum depois
         fragment_no_checksum = header_no_checksum + fragment # Criando um fragmento que o header não tem checksum, para comparar com o checksum que foi feito no remetente, pois lá não havia checksum no header quando o checksum foi calculado
 
         # fazendo o calculo e ajeitando o checksum do que chegou
         checksum_check=find_checksum(fragment_no_checksum)
-        checksum=bin(checksum)[2:]
-        checksum='0'*(len(checksum_check)- len(checksum)) + checksum # adiciona zeros a esquerda
 
         decoded_message = fragment.decode("utf-8", errors="ignore")
 
@@ -100,12 +98,12 @@ def receive():
                 print(f"Houve corrupção no pacote de {nickname}, ele terá que ser reenviado")
             else:
                 print(f"Pacote de {nickname} fora de ordem ou duplicado, reenvio do último ACK")
-            send_packet('', server, address_ip_client,g.SERVER_ADRR, nickname, curr_seq, curr_ack)
+            send_packet('', server, address_ip_client,g.SERVER_ADDR, nickname, curr_seq, curr_ack)
             continue
         
         ## pacote válido: envia ACK e alterna ack esperado
         new_ack = expected_seq
-        send_packet('', server, address_ip_client,g.SERVER_ADRR, nickname, seq_num, new_ack)
+        send_packet('', server, address_ip_client,g.SERVER_ADDR, nickname, seq_num, new_ack)
         seq_ack_control[index][1] = new_ack
 
 
@@ -167,18 +165,18 @@ def broadcast():
                 try:
                     ### usuário entra na sala
                     if decoded_message.startswith("SIGNUP_TAG:"):
-                        send_packet(f"{nickname} se juntou, comece a conversar", server, client_ip, g.SERVER_ADRR, name, curr_seq, curr_ack)
+                        send_packet(f"{nickname} se juntou, comece a conversar", server, client_ip, g.SERVER_ADDR, name, curr_seq, curr_ack)
 
                     ### usuário quer sair da sala
                     elif decoded_message=="bye":
-                        send_packet(f"{nickname} saiu da sala!", server, client_ip, g.SERVER_ADRR, name, curr_seq, curr_ack)
+                        send_packet(f"{nickname} saiu da sala!", server, client_ip, g.SERVER_ADDR, name, curr_seq, curr_ack)
                     
                     ### se comunicando na sala, mensagens
                     else:
                         ip, port = address_ip_client
                         message_output = f'{ip}:{port}/~{nickname}:{decoded_message} {get_current_time_and_date()}'
                         print(f'Enviando mensagem do usuário {nickname} para cliente {name}!')
-                        send_packet(message_output, server, client_ip, g.SERVER_ADRR, name, curr_seq, curr_ack)
+                        send_packet(message_output, server, client_ip, g.SERVER_ADDR, name, curr_seq, curr_ack)
                      
                     ### altera o seq que vai ser usado no proximo pacote enviado 
                     seq_ack_control[index][0] = 1 - curr_seq
