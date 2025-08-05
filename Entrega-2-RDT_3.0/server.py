@@ -196,9 +196,5 @@ broadcast_tread = threading.Thread(target=broadcast)
 receive_tread.start()
 broadcast_tread.start()
 
-## address_ip_client isso é uma tupla
+### o timer do servidor quanod ele manda os braodcasts
 
-### ajeitar o adres do server nas funcoes de send
-
-
-##ajeitar os curr ack e curr seq quanod manda os pacots
