@@ -12,4 +12,4 @@ DATA_FOLDER_PATH = "./Entrega-2-RDT_3.0/data_folder"
 
 
 TIMEOUT = 0.5
-#ACK_RECEIVED = False
+ACK_RECEIVED = False
