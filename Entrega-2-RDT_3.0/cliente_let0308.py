@@ -3,14 +3,13 @@ import random
 import threading #cria threads, importante para programação paralela
 import math
 import struct #interpretar e montar a estrututra dos pacotes 
-from zlib import crc32
+#from zlib import crc32
 from server import convert_string_to_txt
 
 
 import utils.constants as c
 from utils.folder_management import delete_folder
 from utils.sending_pkts import send_packet
-import utils.variables as g
 
 
 # atribui uma porta aleatória ao cliente
@@ -68,21 +67,31 @@ def receive():
             header   = data[:c.HEADER_SIZE]
             fragment = data[c.HEADER_SIZE:]
 
-                # Processa fragmento
-            size, index, total, seq_num, ack_num, crc = struct.unpack("!IIIIII", header)
+            # Fragmentos e desempacotando o header
+            frag_size, frag_index, frag_count, seq_num, ack_num, checksum = struct.unpack('!IIII', header)
 
+            header_no_checksum = struct.pack('!IIIII', frag_size, frag_index, frag_count, seq_num, ack_num) # Criando um header sem o checksum, para fazer a verificação de checksum depois
+            fragment_no_checksum = header_no_checksum + fragment # Criando um fragmento que o header não tem checksum, para comparar com o checksum que foi feito no remetente, pois lá não havia checksum no header quando o checksum foi calculado
 
-            if crc32(fragment) != crc:
-                print("[ERRO] Fragmento corrompido (CRC inválido)")
-                continue
+            # fazendo o calculo e ajeitando o checksum do que chegou
+            checksum_check=find_checksum(fragment_no_checksum)
+            checksum=bin(checksum)[2:]
+            checksum='0'*(len(checksum_check)- len(checksum)) + checksum # adiciona zeros a esquerda
+
             decoded = fragment.decode("utf-8", errors="ignore")
+
+
+            #if crc32(fragment) != crc:
+             #   print("[ERRO] Fragmento corrompido (CRC inválido)")
+              #  continue
+            #decoded = fragment.decode("utf-8", errors="ignore")
 
             # pacotes de controle -> handshake e ACK
             if decoded in ("SYN-ACK", "FYN-ACK", "ACK"):
-                if ack_num != seq_num_client or crc32(fragment) != crc:
+                if ack_num != seq_num_client or checksum != checksum_check:
                     # descarta pacote corrompido ou fora de ordem
                     continue
-                g.ACK_RECEIVED = True
+                c.ACK_RECEIVED = True
                 if decoded == "SYN-ACK":
                     is_conected = True
                 elif decoded == "FYN-ACK":
