@@ -33,11 +33,8 @@ def find_checksum(message):
     if len(sum_checksum) < slice_lenght:
         sum_checksum = '0' * (slice_lenght - len(sum_checksum)) + sum_checksum
 
-    # Calcula o complemento de 1
-    checksum = ''
-    for i in sum_checksum:
-        if i == '1':
-            checksum += '0'
-        else:
-            checksum += '1'
-    return checksum
+    # Complemento de 1
+    checksum = ''.join('0' if bit == '1' else '1' for bit in sum_checksum)
+
+    # Retorna o checksum como inteiro-- util pro  calculo comparando com o header e em sendpackets
+    return int(checksum, 2)
