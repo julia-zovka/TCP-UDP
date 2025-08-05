@@ -1,6 +1,5 @@
 ###from src.server import create_fragment
 from server import convert_string_to_txt 
-import utils.variables as g
 import utils.constants as c
 import math
 import time
@@ -11,59 +10,44 @@ def send_packet(message, sender, destination_address, origin_adress=None, nickna
     fragment_sent = True # Controle do status de envio do fragmento
     
     # Converte a mensagem em um arquivo txt
-    if origin_adress==None:
+    if origin_adress==c.SERVER_ADRR:
         path_file = convert_string_to_txt(message, nickname, True) # SERVER sending
     else:
         path_file = convert_string_to_txt(message, nickname) # CLIENT sending
     # Lendo o conteudo do arquivo
-    file = open(path_file,"rb")
+    with open(path_file,"rb") as file:
     contents = file.read()
 
     #fragmentando o arquivo em diversas partes
-    fragIndex = 0 # Indice do fragmento
     fragSize = c.FRAG_SIZE # Tamanho do fragmento 
+##    fragIndex = 0 # Indice do fragmento
     fragCount = math.ceil(len(contents) / fragSize) # Quantidade total de fragmentos
 
-    # Envia os fragmentos
-    if message == "FYN-ACK" or message == "ACK" or message == "" or message == "SYN" or message == "SYN-ACK": # Se pacote enviado for de reconhecimento
-        fragment = create_fragment(contents, fragSize, fragIndex, fragCount, seq_num, ack_num)
-        
-        if origin_adress:
-            sender.sendto(fragment, (origin_adress, destination_address)) # Envia o fragmento (header + data) para servidor
-        else:
-            sender.sendto(fragment, (c.SERVER_IP, destination_address)) # Envia o fragmento (header + data) para cliente
 
-    else: # Se pacote enviado for com conteúdo
-        if message == "FYN-ACK" or message == "ACK" or message == "SYN" or message == "SYN-ACK": # Se for pacote de reconhecimento de finalização
-            fragment = create_fragment(contents, fragSize, fragIndex, fragCount, seq_num, ack_num)
-            
+    ### criacao dos fragmentos
+    for frag_index in range(fragCount):
+        fragment_data = contents[frag_index * frag_size: (frag_index + 1) * frag_size]
+
+        fragment = create_fragment(fragment_data, frag_size, frag_index, frag_count, seq_num, ack_num)
+
+
+
+        while True: 
+
             if origin_adress:
                 sender.sendto(fragment, (origin_adress, destination_address)) # Envia o fragmento (header + data) para servidor
             else:
                 sender.sendto(fragment, (destination_address)) # Envia o fragmento (header + data) para cliente
-            
-        else:
-            while contents: 
-                fragment = create_fragment(contents, fragSize, fragIndex, fragCount, seq_num, ack_num)
 
-                time_of_last_pkt = time.time()
+            time_sent = time.time()
 
-                if origin_adress:
-                    sender.sendto(fragment, (origin_adress, destination_address)) # Envia o fragmento (header + data) para servidor
-                else:
-                    sender.sendto(fragment, (destination_address)) # Envia o fragmento (header + data) para cliente
+            # Aguarda até que ACK_RECEIVED ou time out seja True
+            while not c.ACK_RECEIVED:
+                if time.time() - time_sent > c.TIMEOUT:
+                    print("O envio da mensagem excedeu o tempo limite!")
+                    break
+                time.sleep(0.1)
 
-                # Aguarda até que c.ACK_RECEIVED seja True
-                while not g.ACK_RECEIVED:
-                    if time_of_last_pkt + g.TIMEOUT < time.time():
-                        print("O envio da mensagem excedeu o tempo limite!")
-                        fragment_sent = False
-                    pass
-
-                if fragment_sent:
-                    
-                    g.ACK_RECEIVED = False # Reseta status do ack
-                    contents = contents[fragSize:] # Remove o fragmento enviado do conteúdo
-                    fragIndex += 1 # Incrementa o índice do fragmento
-                
-                fragment_sent = True # Reestabele status 'True' para fazer nova conferência
+            if c.ACK_RECEIVED: # Se ACK foi recebido
+                c.ACK_RECEIVED = False # Reseta status do ack
+                break## vai pro proximo fragmento            
