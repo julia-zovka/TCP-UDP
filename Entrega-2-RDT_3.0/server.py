@@ -198,3 +198,6 @@ broadcast_tread.start()
 
 ### o timer do servidor quanod ele manda os braodcasts
 
+### reeenvio do pacote caso timer estoure ou ack errado
+
+## logs precisos
