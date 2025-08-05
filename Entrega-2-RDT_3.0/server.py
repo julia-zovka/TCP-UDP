@@ -196,7 +196,6 @@ broadcast_tread = threading.Thread(target=broadcast)
 receive_tread.start()
 broadcast_tread.start()
 
-### o timer do servidor quanod ele manda os braodcasts
 
 ### reeenvio do pacote caso timer estoure ou ack errado
 
