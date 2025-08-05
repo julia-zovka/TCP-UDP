@@ -3,7 +3,6 @@ import queue
 import threading
 import struct
 from datetime import datetime
-#from zlib import crc32
 import math
 
 from utils.checksum import find_checksum
