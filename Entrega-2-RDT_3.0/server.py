@@ -29,7 +29,7 @@ final_ack=False # checar se fim ack foi recebido pelo cliente
 # Funcao para salvar mensagem em .txt é para guardar o histórico das mensagens recebidas pelo servidor e fazer um log de toda conversa da sala
 
 def convert_string_to_txt(nickname, message):
-    filename = f"{nickname}_server_log.txt"
+    filename = f"{nickname}_log.txt"
     with open(filename, "a", encoding="utf-8") as file:
         file.write(message + "\n")
     return filename
@@ -141,7 +141,6 @@ def receive():
 
 
         # Atualiza proximo seq_num a ser enviado
-        g.ACK_RECEIVED = True
         seq_ack_control[index][0] = 1 - curr_seq
 
 
