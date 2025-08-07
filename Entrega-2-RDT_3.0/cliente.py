@@ -73,6 +73,9 @@ def receive():
             data_for_checksum = header_no_checksum + fragment
             checksum_check = find_checksum(data_for_checksum)
 
+            print(f"[DEBUG CLIENTE] Recebido ACK: seq_r={seq_num}, ack_r={ack_num}, esperado={seq_num}")
+
+
             if checksum != checksum_check or seq_num != ack_expected:
                 print("[ERRO] Pacote corrompido ou fora de ordem, reenviando ACK anterior")
                 send_packet('', client, (SERVER_IP, SERVER_PORT), client_ip, nickname, seq_num_client, 1 - ack_expected)

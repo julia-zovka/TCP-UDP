@@ -84,6 +84,7 @@ def receive():
         curr_ack=seq_ack_control[index][1]
         expected_seq=1-curr_ack
 
+        print(f"[DEBUG SERVIDOR] Recebido seq={seq_num}, respondendo com ack={seq_num}")
 
         ### checando a integridade do pacote
         if(checksum!=checksum_check or seq_num!=expected_seq):## se tiver erro no checksum ou seq num, reenvia o ultimo ack
