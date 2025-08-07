@@ -3,7 +3,6 @@ import queue
 import threading
 import struct
 from datetime import datetime
-import math
 
 from utils.checksum import find_checksum
 from utils.sending_pkts import send_packet
@@ -64,42 +63,8 @@ def receive():
         # fazendo o calculo e ajeitando o checksum do que chegou
         checksum_check=find_checksum(fragment_no_checksum)
 
-        decoded_message = fragment.decode("utf-8", errors="ignore")
-        if decoded_message.startswith("hi, meu nome eh "):
-            nickname = decoded_message.split("hi, meu nome eh ")[1]
 
-            # Inicializa listas para o cliente se necessário
-            if address_ip_client not in clients_ip:
-                clients_ip.append(address_ip_client)          
-                clients_nickname.append(nickname)
-                seq_ack_control.append([0,0])
-                index=clients_ip.index(address_ip_client)
-
-        else:
-            index= clients_ip.index(address_ip_client)
-            nickname=clients_nickname[index]
-
-        ## o seq number o pacote que o servidor mando com o akc do ultimo recebido
-        curr_seq=seq_ack_control[index][0]
-        curr_ack=seq_ack_control[index][1]
-        expected_seq=1-curr_ack
-
-        print(f"[DEBUG SERVIDOR] Recebido seq={seq_num}, respondendo com ack={seq_num}")
-
-        ### checando a integridade do pacote
-        if(checksum!=checksum_check or seq_num!=expected_seq):## se tiver erro no checksum ou seq num, reenvia o ultimo ack
-            if checksum!=checksum_check:
-                print(f"Houve corrupção no pacote de {nickname}, ele terá que ser reenviado")
-            else:
-                print(f"Pacote de {nickname} fora de ordem ou duplicado, reenvio do último ACK")
-            send_packet('', server, address_ip_client,g.SERVER_ADDR, nickname, curr_seq, curr_ack)
-            continue
-        
-        # pacote válido: envia ACK com ack_num igual ao seq_num recebido (como o cliente espera)
-        send_packet('', server, address_ip_client, g.SERVER_ADDR, nickname, seq_num, seq_num)
-        seq_ack_control[index][1] = seq_num
-
-
+        #### preparando o buffer
         ## adiciona fragcount posiçoes vazias na lista de fragmentos recebidos
         if(len(rec_chunks)<frag_count):
             to_add=frag_count-len(rec_chunks)
@@ -115,14 +80,56 @@ def receive():
             content = b''.join(rec_chunks)
             content_decoded = content.decode("utf-8")
 
+            # Inicializa listas para o cliente se necessário
+            if address_ip_client not in clients_ip:
+                mensagem_limpa = content_decoded.strip().lower()
+                if mensagem_limpa.startswith("hi, meu nome eh "):
+                    nickname_raw = mensagem_limpa[len("hi, meu nome eh "):].strip()
+                    if nickname_raw:
+                        nickname = nickname_raw
+                        clients_ip.append(address_ip_client)
+                        clients_nickname.append(nickname)
+                        seq_ack_control.append([0, 1])
+                        print(f"[REGISTRO] Novo cliente: {nickname} - {address_ip_client}")
+                    else:
+                        print(f"[ERRO] Nickname vazio recebido de {address_ip_client}. Ignorando...")
+                        continue
+                else:
+                    print(f"[IGNORADO] Cliente {address_ip_client} tentou enviar mensagem sem se apresentar.")
+                    continue
+        
+            index= clients_ip.index(address_ip_client)
+            nickname=clients_nickname[index]
+
+            ## o seq number o pacote que o servidor mando com o akc do ultimo recebido
+            curr_seq=seq_ack_control[index][0]
+            curr_ack=seq_ack_control[index][1]
+            expected_seq=1-curr_ack
+
+            print(f"[DEBUG SERVIDOR] Recebido seq={seq_num}, respondendo com ack={seq_num}")
+
+            ### checando a integridade do pacote
+            if(checksum!=checksum_check or seq_num!=expected_seq):## se tiver erro no checksum ou seq num, reenvia o ultimo ack
+                if checksum!=checksum_check:
+                    print(f"Houve corrupção no pacote de {nickname}, ele terá que ser reenviado")
+                else:
+                    print(f"Pacote de {nickname} fora de ordem ou duplicado, reenvio do último ACK")
+                send_packet('', server, address_ip_client,g.SERVER_ADDR, nickname, curr_seq, curr_ack)
+                continue
+            
+            # pacote válido: envia ACK com ack_num igual ao seq_num recebido (como o cliente espera)
+            send_packet('', server, address_ip_client, g.SERVER_ADDR, nickname, seq_num, seq_num)
+            seq_ack_control[index][1] = seq_num
+
             path_file = convert_string_to_txt(nickname, content_decoded)
 
             ## le so a ultima mensagem do log
             with open(path_file, "r", encoding="utf-8") as arquivo:
                 lines = arquivo.readlines()
                 last_message=lines[-1].strip() if lines else ""
+
             if last_message.startswith("hi, meu nome eh ") or last_message.startswith("bye"):
-                messages.put((decoded_message, address_ip_client, nickname))
+                messages.put((content_decoded, address_ip_client, nickname))
             else:
                 message = f"{nickname}:{last_message}".encode("utf-8")
                 messages.put((message, address_ip_client, nickname))## joga na fila de mensagens
@@ -132,9 +139,8 @@ def receive():
             rec_chunks=[]
             chunks_count=0
 
-
-        # Atualiza proximo seq_num a ser enviado
-        seq_ack_control[index][0] = 1 - curr_seq
+            # Atualiza proximo seq_num a ser enviado
+            seq_ack_control[index][0] = 1 - curr_seq
 
 
 
@@ -156,7 +162,11 @@ def broadcast():
 
                 try:
                     ### usuário entra na sala
-                    if decoded_message.startswith("SIGNUP_TAG:"):
+
+                    if isinstance(decoded_message, bytes):
+                        decoded_message = decoded_message.decode("utf-8", errors="ignore")
+
+                    if decoded_message.startswith("hi, meu nome eh"):
                         send_packet(f"{nickname} se juntou, comece a conversar", server, client_ip, g.SERVER_ADDR, name, curr_seq, curr_ack)
 
                     ### usuário quer sair da sala
