@@ -1,4 +1,4 @@
-from server import convert_string_to_txt 
+from utils.convert_string_to_text import convert_string_to_txt 
 import utils.constants as c
 import math
 import socket
@@ -8,7 +8,7 @@ from utils.create_frag import  create_fragment
 
 
 def send_packet(message, sender, destination_address, origin_adress=None, nickname=None, seq_num=None, ack_num=None):
-    fragment_sent = True # Controle do status de envio do fragmento
+    #fragment_sent = True # Controle do status de envio do fragmento
     
     # Converte a mensagem em um arquivo txt
     if origin_adress==c.SERVER_ADDR:
@@ -42,7 +42,7 @@ def send_packet(message, sender, destination_address, origin_adress=None, nickna
                 ack_header = ack_data[:24]
                 _, _, _, seq_r, ack_r, checksum_r = struct.unpack('!IIIIII', ack_header)
                 
-                # Verifica se ack cert
+                # Verifica se ack certo
                 if ack_r==seq_num:
                     print(f"ACK {ack_r} recebido corretamente para fragmento {frag_index}")
                     break  

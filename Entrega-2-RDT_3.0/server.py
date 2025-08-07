@@ -7,7 +7,8 @@ import math
 
 from utils.checksum import find_checksum
 from utils.sending_pkts import send_packet
-import utils.constants as g 
+import utils.constants as g
+from utils.convert_string_to_text import convert_string_to_txt 
 
 
 # Inicializacao
@@ -24,15 +25,6 @@ print(f"[{datetime.now().strftime('%H:%M:%S')}] Servidor conectado em {g.SERVER_
 
 
 final_ack=False # checar se fim ack foi recebido pelo cliente
-
-
-# Funcao para salvar mensagem em .txt é para guardar o histórico das mensagens recebidas pelo servidor e fazer um log de toda conversa da sala
-
-def convert_string_to_txt(nickname, message):
-    filename = f"{nickname}_log.txt"
-    with open(filename, "a", encoding="utf-8") as file:
-        file.write(message + "\n")
-    return filename
 
 
 # Funcao para pegar data e hora atual
@@ -73,14 +65,15 @@ def receive():
         checksum_check=find_checksum(fragment_no_checksum)
 
         decoded_message = fragment.decode("utf-8", errors="ignore")
+        if decoded_message.startswith("hi, meu nome eh "):
+            nickname = decoded_message.split("hi, meu nome eh ")[1]
 
-        # Inicializa listas para o cliente se necessário
-        if address_ip_client not in clients_ip:
-            clients_ip.append(address_ip_client)
-            nickname=decoded_message.split("eh ")[1]
-            clients_nickname.append(nickname)
-            seq_ack_control.append([0,0])
-            index=clients_ip.index(address_ip_client)
+            # Inicializa listas para o cliente se necessário
+            if address_ip_client not in clients_ip:
+                clients_ip.append(address_ip_client)          
+                clients_nickname.append(nickname)
+                seq_ack_control.append([0,0])
+                index=clients_ip.index(address_ip_client)
 
         else:
             index= clients_ip.index(address_ip_client)
@@ -101,10 +94,9 @@ def receive():
             send_packet('', server, address_ip_client,g.SERVER_ADDR, nickname, curr_seq, curr_ack)
             continue
         
-        ## pacote válido: envia ACK e alterna ack esperado
-        new_ack = expected_seq
-        send_packet('', server, address_ip_client,g.SERVER_ADDR, nickname, seq_num, new_ack)
-        seq_ack_control[index][1] = new_ack
+        # pacote válido: envia ACK com ack_num igual ao seq_num recebido (como o cliente espera)
+        send_packet('', server, address_ip_client, g.SERVER_ADDR, nickname, seq_num, seq_num)
+        seq_ack_control[index][1] = seq_num
 
 
         ## adiciona fragcount posiçoes vazias na lista de fragmentos recebidos

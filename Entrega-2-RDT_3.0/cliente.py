@@ -26,9 +26,10 @@ client.bind((SERVER_IP, random.randint(1000, 9998)))
 
 ##### variabeis globais
 seq_num_client = 0 # Número de sequência para enviar pacote  pelo cliente
-ack_expected = 0 # Número de reconhecimento do pacote esperado no  servidor 
+ack_expected = 0 # Número de sequencia do pacote esperado que o  servidor  manda
 client_ip = None 
 nickname = None
+is_conected=False
 message_buffer = ''
 
 
@@ -44,54 +45,6 @@ def apresentacao():
     return nome, f"hi, meu nome eh {nome}"
 
 
-
-# Funcao para receber mensagens
-
-def receive():
-    buffer = {}
-    global ack_to_send
-    
-    while True:
-        try:
-            data, _ = client.recvfrom(BUFF_SIZE)
-
-            # ve se mensagens entrada/saída
-            try:
-                text = data.decode("utf-8")
-                if "se juntou" in text or "saiu da sala" in text:
-                    print(text.strip())
-                    continue
-            except:
-                pass 
-
-            # Processa fragmento
-            header, fragment = data[:16], data[16:]
-            size, index, total, crc = struct.unpack("!IIII", header)
-
-            if crc32(fragment) != crc:
-                print("[ERRO] Fragmento corrompido (CRC inválido)")
-                continue
-
-            # Inicializa buffer da mensagem se necessário para reconstruir e guardar nas posiscoes certas
-            if "frags" not in buffer:
-                buffer["frags"] = [None] * total
-                buffer["recebidos"] = 0
-
-            # Armazena fragmento
-            if buffer["frags"][index] is None:
-                buffer["frags"][index] = fragment
-                buffer["recebidos"] += 1
-
-            # Se recebeu todos, junta e imprime
-            if buffer["recebidos"] == total:
-                msg = b''.join(buffer["frags"]).decode("utf-8")
-                print(msg)
-                buffer.clear()  # Limpa para próxima mensagem
-
-        except Exception as e:
-            print(f"[ERRO NO CLIENTE] Falha ao receber mensagem: {e}")
-    
-
 # Funcao para criar arquivo .txt, so guarda a mensagem mais recente
 
 def convert_string_to_txt(nickname, message):
@@ -101,116 +54,19 @@ def convert_string_to_txt(nickname, message):
     return filename
 
 
-# Inicia thread de recebimento
+# Funcao para receber mensagens
 
-receive_thread = threading.Thread(target=receive)
-receive_thread.start()
-
-# Loop principal
-is_conected = False
-
-# Executa apresentacao
-nickname, hello = apresentacao()
-
-while True:
-    message = input()
-
-    if message.strip() == "":
-        continue  # Ignora mensagens vazias
-
-    client_ip = client.getsockname()[0]
-
-#### conecta cliente na sala
-
-    if message.startswith("hi, meu nome eh "):
-        if is_conected:
-            print("Calma jovem, você já está conectado à sala!")
-        else:
-            nickname = message[16:]
-            is_conected = True
-            client.sendto(f"SIGNUP_TAG:{nickname}".encode(), (SERVER_IP, SERVER_PORT))
-
-### desconecta cliente do servidor, sai da sala
-
-    elif message == "bye":
-        if not is_conected:
-            print("Você não está conectado à sala! para sair precisa entrar chefe!")
-        else:
-            client.sendto(f"QUIT_TAG:{nickname}".encode(), (SERVER_IP, SERVER_PORT))
-            print("Você não está  mais conectado à sala!, até a próxima")
-            is_conected = False
-
-
-### mandando mensagens
-
-    elif is_conected:
-        temp_file = convert_string_to_txt(nickname, message) # cria o txt contendo a mensagem  mais recente do usuario 
-        with open(temp_file, "rb") as file:
-            contents = file.read()
-
-        ## calcula qunatos fragmento por mensagem
-        frag_size = BUFF_SIZE - 16 ##  16 são os bytes do cabeçalho
-        frag_count = math.ceil(len(contents) / frag_size)
-
-        # Envia cada fragmento
-        for frag_index in range(frag_count):
-            fragment = create_fragment(contents, frag_size, frag_index, frag_count)
-            client.sendto(fragment, (SERVER_IP, SERVER_PORT))
-            
-            # Pequeno delay para evitar congestionamento
-            ##time.sleep(0.001)
-
-    else:
-        print("Comando inválido!")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import socket
-import struct
-import threading
-from utils.sending_pkts import send_packet
-from utils.checksum import find_checksum
-from utils.constants import SERVER_IP, SERVER_PORT, BUFF_SIZE, HEADER_SIZE
-
-client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-client.bind((SERVER_IP, 0))  # Usa uma porta aleatória
-
-seq_num_client = 0  # número de sequência para envio
-ack_expected = 0    # número de sequência esperado do servidor
-
-client_ip = client.getsockname()[0]
-nickname = input("Digite seu nickname: ").strip()
-
-print("\nPara entrar na sala, digite:\n  hi, meu nome eh <nickname>")
-print("Para sair, digite:\n  bye\n")
-
-# Função para receber mensagens
 def receive():
-    global ack_expected
     buffer = {}
+    global ack_expected
     
     while True:
         try:
             data, _ = client.recvfrom(BUFF_SIZE)
-            header = data[:HEADER_SIZE]
-            fragment = data[HEADER_SIZE:]
+            header = data[:g.HEADER_SIZE]
+            fragment = data[g.HEADER_SIZE:]
 
+            ## desempacotando para fazer o checksum
             frag_size, frag_index, frag_count, seq_num, ack_num, checksum = struct.unpack('!IIIIII', header)
 
             header_no_checksum = struct.pack('!IIIII', frag_size, frag_index, frag_count, seq_num, ack_num)
@@ -240,19 +96,51 @@ def receive():
                 buffer.clear()
 
         except Exception as e:
-            print(f"[ERRO] {e}")
+            print(f"[ERRO NO CLIENTE] Falha ao receber mensagem: {e}")
+    
 
-# Thread para receber mensagens
-threading.Thread(target=receive, daemon=True).start()
 
-# Loop principal de envio
+# Inicia thread de recebimento
+
+receive_thread = threading.Thread(target=receive)
+receive_thread.start()
+
+
+# Executa apresentacao
+nickname, hello = apresentacao()
+
+# Loop de envio
 while True:
-    try:
-        msg = input()
-        if msg.strip() == "":
-            continue
-        send_packet(msg, client, (SERVER_IP, SERVER_PORT), client_ip, nickname, seq_num_client, ack_expected)
+    message = input()
+
+    if message.strip() == "":
+        continue  # ignora mensagens vazias
+
+    if message.startswith("hi, meu nome eh ") and not is_conected:
+        # Extrai nickname da mensagem e entra na sala
+        nickname = message.split("hi, meu nome eh ")[1].strip()
+        is_conected = True
+        convert_string_to_txt(nickname, message)
+        send_packet(message, client, (SERVER_IP, SERVER_PORT), client_ip, nickname, seq_num_client, ack_expected)
         seq_num_client = 1 - seq_num_client
-    except KeyboardInterrupt:
-        print("Encerrando cliente.")
+
+    elif message.strip().lower() == "bye" and is_conected:
+        # Sai da sala
+        print("Você saiu da sala, até uma próxima.")
+        convert_string_to_txt(nickname, message)
+        send_packet(message, client, (SERVER_IP, SERVER_PORT), client_ip, nickname, seq_num_client, ack_expected)
         break
+
+    elif not is_conected:
+        # Tentou mandar outra mensagem sem ter se conectado
+        print(" Você precisa entrar na sala primeiro")
+
+    else:
+        # Envia mensagem normal após conexão
+        convert_string_to_txt(nickname, message)
+        send_packet(message, client, (SERVER_IP, SERVER_PORT), client_ip, nickname, seq_num_client, ack_expected)
+        seq_num_client = 1 - seq_num_client
+
+
+
+#### erross não tá dando comnado invalido antes de se conectar a salaaa
