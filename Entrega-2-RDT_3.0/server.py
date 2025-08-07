@@ -119,7 +119,7 @@ def receive():
             
             # pacote válido: envia ACK com ack_num igual ao seq_num recebido (como o cliente espera)
             send_packet('', server, address_ip_client, g.SERVER_ADDR, nickname, seq_num, seq_num)
-            seq_ack_control[index][1] = seq_num
+            seq_ack_control[index][1] = 1 - seq_num
 
             path_file = convert_string_to_txt(nickname, content_decoded)
 

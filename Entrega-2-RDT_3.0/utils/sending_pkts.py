@@ -12,9 +12,9 @@ def send_packet(message, sender, destination_address, origin_adress=None, nickna
     
     # Converte a mensagem em um arquivo txt
     if origin_adress==c.SERVER_ADDR:
-        path_file = convert_string_to_txt(message, nickname) # SERVER sending
+        path_file = convert_string_to_txt(nickname, message) # SERVER sending
     else:
-        path_file = convert_string_to_txt(message, nickname) # CLIENT sending
+        path_file = convert_string_to_txt(nickname, message) # CLIENT sending
     # Lendo o conteudo do arquivo
     with open(path_file,"rb") as file:
         contents = file.read()

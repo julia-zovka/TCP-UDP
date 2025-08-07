@@ -73,11 +73,22 @@ def receive():
 
             print(f"[DEBUG CLIENTE] Recebido ACK: seq_r={seq_num}, ack_r={ack_num}, esperado={seq_num}")
 
+            ## pacote de ACK
+            if len(fragment) == 0:
+                # É um ACK puro para algo que enviei
+                if ack_num == seq_num_client:
+                    print(f"ACK {ack_num} recebido corretamente")
+                else:
+                    print(f"ACK incorreto, {ack_num} recebido, aguardando {seq_num_client}")
+                continue
 
+            # Caso contrário, é mensagem de dados
             if checksum != checksum_check or seq_num != ack_expected:
                 print("[ERRO] Pacote corrompido ou fora de ordem, reenviando ACK anterior")
-                send_packet('', client, (SERVER_IP, SERVER_PORT), client_ip, nickname, seq_num_client, 1 - ack_expected)
+                send_packet('', client, (SERVER_IP, SERVER_PORT), client_ip, nickname, 0, 1 - ack_expected)
                 continue
+
+           
 
             # Monta o buffer por fragmento
             if "frags" not in buffer:
@@ -92,7 +103,7 @@ def receive():
             if buffer["recebidos"] == frag_count:
                 msg = b''.join(buffer["frags"]).decode("utf-8", errors="ignore")
                 print(msg)
-                send_packet('', client, (SERVER_IP, SERVER_PORT), client_ip, nickname, seq_num_client, ack_expected)
+                send_packet('', client, (SERVER_IP, SERVER_PORT), client_ip, nickname, 0, seq_num)
                 ack_expected = 1 - ack_expected
                 buffer.clear()
 
