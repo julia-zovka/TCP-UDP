@@ -1,9 +1,7 @@
 import socket
 import random
 import threading #cria threads, importante para programação paralela
-import math
 import struct #interpretar e montar a estrututra dos pacotes 
-from zlib import crc32
 
 
 from utils.checksum import find_checksum
@@ -26,7 +24,7 @@ client.bind((SERVER_IP, random.randint(1000, 9998)))
 
 ##### variabeis globais
 seq_num_client = 0 # Número de sequência para enviar pacote  pelo cliente
-ack_expected = 0 # Número de sequencia do pacote esperado que o  servidor  manda
+ack_expected = 1 # Número de sequencia do pacote esperado que o  servidor  manda
 client_ip = None 
 nickname = None
 is_conected=False
@@ -134,9 +132,14 @@ while True:
         send_packet(message, client, (SERVER_IP, SERVER_PORT), client_ip, nickname, seq_num_client, ack_expected)
         break
 
+    ## já tinha saido
+    elif message.strip().lower() == "bye" and not is_conected:
+        print("Você já saiu da sala antes.")
+    
+
     elif not is_conected:
         # Tentou mandar outra mensagem sem ter se conectado
-        print(" Você precisa entrar na sala primeiro")
+        print("Comando inválido")
 
     else:
         # Envia mensagem normal após conexão
