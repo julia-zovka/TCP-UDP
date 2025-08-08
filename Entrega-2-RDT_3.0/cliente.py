@@ -27,11 +27,12 @@ ack_lock = threading.Lock()
 ack_event = {0: threading.Event(), 1: threading.Event()}  # duas seq (0/1)
 
 # Sequências
-next_seq_send = 0       # lado remetente (cliente -> servidor)
-expected_seq_recv = 0   # lado receptor (servidor -> cliente)
+next_seq_send = 0       # lado remetente (cliente p servidor)
+expected_seq_recv = 0   # lado receptor (servidor p cliente)
 last_good_seq = 1       # para ACK duplicado
 
-# ------------------ Apresentação ------------------
+
+# funcao de apresentação
 
 def apresentacao():
     nome = input("Digite seu nome: ")
@@ -42,7 +43,8 @@ def apresentacao():
     print("' bye ' \n")
     return nome, f"hi, meu nome eh {nome}"
 
-# ------------------ Helpers RDT ------------------
+
+### funçoes que tratam do desempacotamento e empacotamento do pacote
 
 def _make_header(fragment_data, frag_index, frag_count, seq):
     actual_size = len(fragment_data)
@@ -66,8 +68,7 @@ def _parse_header(data):
 def _send_ack(seq_to_ack):
     ack_msg = f"ACK:{seq_to_ack}".encode("utf-8")
     client.sendto(ack_msg, (SERVER_IP, SERVER_PORT))
-    # print opcional no cliente
-    # print(f"[RDT][CLIENTE] -> Enviado ACK {seq_to_ack}")
+    
 
 def _wait_ack(seq):
     ev = ack_event[seq]
@@ -84,8 +85,8 @@ def _clear_ack(seq):
     if ev:
         ev.clear()
 
-# ------------------ Recebimento (monta msg do chat e envia ACK) ------------------
 
+### funcao de recebimento de mensagens dos outros cliente e de acks
 def receive():
     global expected_seq_recv, last_good_seq
 
@@ -95,7 +96,7 @@ def receive():
         try:
             data, _ = client.recvfrom(BUFF_SIZE)
 
-            # Primeiro, tenta decodificar como texto simples (mensagens de controle)
+            # decodificar como texto simples (mensagens de controle)
             try:
                 text = data.decode("utf-8", errors="strict")
                 
@@ -104,7 +105,6 @@ def receive():
                     try:
                         seq_ack = int(text.split(":", 1)[1])
                         _register_ack(seq_ack)
-                        # print(f"[RDT][CLIENTE] <- ACK {seq_ack} do servidor")
                         continue
                     except Exception:
                         pass
@@ -132,13 +132,13 @@ def receive():
                     
                 size, index, total, cks, seq, fragment, hdr_len = _parse_header(data)
                 
-                # Verifica CRC
+                #  calculo checksum 
                 if not verify_checksum(fragment, cks) or size != len(fragment):
                     # pacote corrompido -> ACK do último bom
                     _send_ack(last_good_seq)
                     continue
 
-                # **CORREÇÃO**: Verifica sequence number para evitar duplicatas
+                # Verifica sequence number  é o esperado
                 if seq is not None:
                     if seq == expected_seq_recv:
                         # Sequência correta -> envia ACK e alterna esperado
@@ -146,7 +146,7 @@ def receive():
                         last_good_seq = seq
                         expected_seq_recv = 1 - expected_seq_recv
                     else:
-                        # Sequência incorreta (duplicata ou fora de ordem) -> ACK duplicado
+                        # Seq incorreto (duplicata ou fora de ordem) -> ACK duplicado
                         _send_ack(last_good_seq)
                         continue
                 else:
@@ -182,7 +182,9 @@ def receive():
         except Exception as e:
             print(f"[ERRO NO CLIENTE] Falha ao receber mensagem: {e}")
 
-# ------------------ Utilitários de envio ------------------
+
+
+### conversao pra txt, salva a ultima mensgem do cliente
 
 def convert_string_to_txt(nickname, message):
     filename = f"{nickname}.txt"
@@ -190,6 +192,7 @@ def convert_string_to_txt(nickname, message):
         file.write(message)
     return filename
 
+## função para criação dos fragmentos, importante para mensagens longas
 def create_fragment(contents, frag_size, frag_index, frag_count, seq):
     start = frag_index * frag_size
     end = start + frag_size
@@ -197,7 +200,7 @@ def create_fragment(contents, frag_size, frag_index, frag_count, seq):
     header = _make_header(fragment_data, frag_index, frag_count, seq)
     return header + fragment_data
 
-# ------------------ Thread de recebimento ------------------
+
 
 receive_thread = threading.Thread(target=receive, daemon=True)
 receive_thread.start()
@@ -238,7 +241,7 @@ while True:
         with open(temp_file, "rb") as file:
             contents = file.read()
 
-        frag_size = BUFF_SIZE - 20  # 20 bytes de cabeçalho (com seq)
+        frag_size = BUFF_SIZE - 20  # 20 bytes de cabeçalho (com seq)// os pacotes de ack foram tratados de forma separada
         frag_count = math.ceil(len(contents) / frag_size)
 
         for frag_index in range(frag_count):
@@ -250,11 +253,9 @@ while True:
                 # limpa evento do ACK esperado
                 _clear_ack(seq)
                 # envia
-                # print(f"[RDT][CLIENTE] -> Enviando frag {frag_index+1}/{frag_count} (seq={seq}, tentativa={tries})")
                 client.sendto(fragment, (SERVER_IP, SERVER_PORT))
                 # espera ACK
                 if _wait_ack(seq):
-                    # print(f"[RDT][CLIENTE] <- ACK {seq} recebido para frag {frag_index+1}/{frag_count}")
                     next_seq_send = 1 - next_seq_send
                     break
                 else:

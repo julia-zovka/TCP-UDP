@@ -17,8 +17,8 @@ from utils.checksum import find_checksum, verify_checksum
 SERVER_IP = "0.0.0.0"
 SERVER_PORT = 12000
 BUFF_SIZE = 1024
-TIMEOUT = 1.0  # segundos (RDT 3.0)
-MAX_RETRIES = 20  # limite de tentativas de retransmissão (evitar loop infinito)
+TIMEOUT = 1.0  
+MAX_RETRIES = 20  # limite de tentativas (evitar loop infinito)
 CLEANUP_INTERVAL = 30  # segundos para limpeza de clientes inativos
 
 # Inicializacao
@@ -26,9 +26,9 @@ messages = queue.Queue()
 clients_ip = []
 clients_nickname = []
 
-# Eventos de ACK por cliente+seq (para o servidor esperar ACKs enviados pelos clientes)
+# para o servidor esperar ACKs enviados pelos clientes
 ack_lock = threading.Lock()
-ack_events = {}  # chave: (client_addr, seq) -> threading.Event()
+ack_events = {}  # chave: (client_addr, seq) 
 
 # Controle de sequência esperado por cliente (lado receptor no servidor)
 expected_seq_recv = {}  # chave: client_addr -> 0/1
@@ -39,7 +39,7 @@ next_seq_send = {}  # chave: client_addr -> 0/1
 server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server.bind((SERVER_IP, SERVER_PORT))
 
-# ------------------ Utilitários ------------------
+# utils
 
 def convert_string_to_txt(nickname, message):
     filename = f"{nickname}_server_log.txt"
@@ -63,7 +63,8 @@ def remove_client(client):
         for k in [k for k in ack_events.keys() if k[0] == client]:
             ack_events.pop(k, None)
 
-# ------------------ RDT 3.0 helpers ------------------
+
+### funçoes que tratam do desempacotamento e empacotamento do pacote
 
 def _make_data_header(fragment_data, frag_index, frag_count, seq):
     # Agora o cabeçalho tem 20 bytes para carregar o seq:
@@ -116,13 +117,11 @@ def _register_ack_received(addr, seq):
             ack_events[key].set()
         # Se não existe o evento, significa que já foi processado ou timeout
 
-# ------------------ Envio com RDT (broadcast) ------------------
+
+##criacao dos fragmentacao das mensagens para serem enviadas
 
 def fragment_and_send(message_bytes, client_ip):
-    """
-    Mantém o mesmo nome da função da 1ª entrega.
-    Agora envia cada fragmento com RDT 3.0 (stop-and-wait).
-    """
+
     # Verifica se o cliente ainda está na lista antes de enviar
     if client_ip not in clients_ip:
         print(f"[SKIP] Cliente {client_ip} não está mais conectado. Pulando envio.")
@@ -209,16 +208,16 @@ def cleanup_disconnected_clients():
                 print(f"[CLEANUP] Removendo cliente inativo: {nickname} ({client_addr})")
                 remove_client(client_addr)
 
-# ------------------ Recepção (inclui montagem + RDT) ------------------
+
+
+### thread de recebimento de mensagens
 
 def receive():
     # buffers por cliente
-    fragments = {}       # addr -> lista de frags
-    chunks_count = {}    # addr -> qtd recebida
-    expected_chunks = {} # addr -> total esperado
-    last_good_seq = {}   # addr -> último seq válido recebido (para ACK duplicado)
-    # inicia expected seq = 0 (para rdt 3.0 clássico)
-    # será setado on-demand
+    fragments = {}       
+    chunks_count = {}    
+    expected_chunks = {} 
+    last_good_seq = {}   
 
     while True:
         try:
@@ -263,7 +262,7 @@ def receive():
             # Verifica seq esperado
             exp = expected_seq_recv[address_ip_client]
             if seq is None:
-                # Pacote legado (sem seq no header) — aceitamos como se estivesse correto, mas SEM alternância
+                # Pacote sem seq no header — aceitamos como se estivesse correto, mas SEM alternância
                 # Ainda assim montamos e replicamos para manter compatibilidade mínima
                 print(f"[RDT][LEGADO] Recebido frag {index+1}/{total} sem seq explícito de {address_ip_client}.")
                 # Envia ACK "fixo" (0) para destravar quem estiver esperando
@@ -345,7 +344,9 @@ def receive():
             import traceback
             traceback.print_exc()
 
-# ------------------ Broadcast (igual estrutura, mas usando RDT no envio) ------------------
+
+
+### funcao de broadcast para repassar a mensagem pra todos os cliente conectados
 
 def broadcast():
     while True:
@@ -395,7 +396,7 @@ def broadcast():
 
                     elif ":" in decoded_message:
                         # Mensagem de chat - apenas envia para OUTROS clientes (não para quem enviou)
-                        if client_ip != address_ip_client:  # Não envia para o próprio remetente
+                        if client_ip != address_ip_client:  
                             name, msg = decoded_message.split(":", 1)
                             ip, port = address_ip_client
                             message_output = f'\n{ip}:{port}/~{name}:{msg.strip()} {get_current_time_and_date()}\n'
@@ -420,12 +421,9 @@ broadcast_tread = threading.Thread(target=broadcast, daemon=True)
 ##cleanup_thread = threading.Thread(target=cleanup_disconnected_clients, daemon=True)
 
 print(f"[SERVIDOR OK] Servidor conectado e aguardando na porta {SERVER_PORT}, {get_current_time_and_date()}")
-print(f"[INFO] Detecção de corrupção usando checksum CRC32 ativada")
-##print(f"[INFO] Limpeza automática de clientes inativos a cada {CLEANUP_INTERVAL}s\n")
 
 receive_tread.start()
 broadcast_tread.start()
-##cleanup_thread.start()
 
 # Mantém o processo vivo
 receive_tread.join()

@@ -1,37 +1,15 @@
 from zlib import crc32
 
 def find_checksum(data):
-    """
-    Calcula checksum usando CRC32 para detecção de erros no RDT 3.0
     
-    Args:
-        data (bytes): Dados para calcular o checksum
-        
-    Returns:
-        int: Valor do checksum calculado
-    """
     return crc32(data) & 0xffffffff
 
 def verify_checksum(data, expected_checksum):
-    """
-    Verifica se o checksum dos dados corresponde ao esperado
-    
-    Args:
-        data (bytes): Dados para verificar
-        expected_checksum (int): Checksum esperado
-        
-    Returns:
-        bool: True se checksum é válido, False caso contrário
-    """
     calculated = find_checksum(data)
     return calculated == expected_checksum
 
 # Implementação alternativa usando soma simples (conforme material didático)
 def simple_checksum(data):
-    """
-    Implementação alternativa de checksum usando soma simples
-    (mais próxima do que é ensinado na disciplina)
-    """
     if isinstance(data, str):
         data = data.encode('utf-8')
     
