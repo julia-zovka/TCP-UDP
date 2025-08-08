@@ -8,16 +8,15 @@ Esse projeto  é  um produto da disciplina "Redes de computadores", ministrada p
 
 - server.py: Código do servidor que gerencia a comunicação entre os clientes.
 - client.py: Código do cliente que permite aos usuários enviar e receber mensagens.
-- utils: Pasa que contém funçoes e variáveis que são reaproveitadas
+- utils: Pasta que contém funçoes e variáveis que são reaproveitadas
     - checksum.py
     - constanst.py
     - create_frag.py
-    - folder_management.py
     - sendind_pkts.py
 
 ## Especificidade
 - Implementação de transferência de pacotes utilizando protocolo UDP e protocolo RDT 3.0
-    - ACK e núero de sequência sendo utilizados para fazer o controle dos pacotes que chegaram e dos próximos
+    - ACK e número de sequência sendo utilizados para fazer o controle dos pacotes que chegaram e dos próximos
     - implementação de um timer caso o pacote se perca no meio do caminho oque acarreta no reenvio do pacote
     - caso o ACK chegue corrompido ou o timer tenha estourado, o pacote é reeenviado
 
