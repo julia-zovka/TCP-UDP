@@ -8,11 +8,9 @@ Esse projeto  é  um produto da disciplina "Redes de computadores", ministrada p
 
 - server.py: Código do servidor que gerencia a comunicação entre os clientes.
 - client.py: Código do cliente que permite aos usuários enviar e receber mensagens.
-- utils: Pasta que contém funçoes e variáveis que são reaproveitadas
+- utils: Pasta que contém função que será usada como uma 'biblioteca'
     - checksum.py
-    - constanst.py
-    - create_frag.py
-    - sendind_pkts.py
+  
 
 ## Especificidade
 - Implementação de transferência de pacotes utilizando protocolo UDP e protocolo RDT 3.0
