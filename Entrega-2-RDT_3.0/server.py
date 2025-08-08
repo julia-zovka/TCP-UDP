@@ -5,7 +5,7 @@ import struct
 from datetime import datetime
 
 from utils.checksum import find_checksum
-from utils.sending_pkts import send_packet
+from utils.sending_pkts import send_packet, send_ack
 import utils.constants as g
 from utils.convert_string_to_text import convert_string_to_txt 
 
@@ -114,11 +114,12 @@ def receive():
                     print(f"Houve corrupção no pacote de {nickname}, ele terá que ser reenviado")
                 else:
                     print(f"Pacote de {nickname} fora de ordem ou duplicado, reenvio do último ACK")
-                send_packet('', server, address_ip_client,g.SERVER_ADDR, nickname, curr_seq, curr_ack)
+                    send_ack(server, address_ip_client, curr_seq)
+
                 continue
             
             # pacote válido: envia ACK com ack_num igual ao seq_num recebido (como o cliente espera)
-            send_packet('', server, address_ip_client, g.SERVER_ADDR, nickname, seq_num, seq_num)
+            send_ack(server, address_ip_client, seq_num)
             seq_ack_control[index][1] = 1 - seq_num
 
             path_file = convert_string_to_txt(nickname, content_decoded)

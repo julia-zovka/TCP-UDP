@@ -57,3 +57,21 @@ def send_packet(message, sender, destination_address, origin_adress=None, nickna
 
     sender.settimeout(None)
 
+
+
+
+def send_ack(sender: socket.socket, destination_address: tuple, ack_num: int):
+    """
+    Envia um ACK puro (sem payload), com ack_num no cabeçalho.
+    """
+    # Cabeçalho: (frag_size, frag_index, frag_count, seq_num, ack_num, checksum)
+    # Tudo zero, exceto ack_num
+    header = struct.pack('!IIIIII',
+                         0,    # frag_size
+                         0,    # frag_index
+                         0,    # frag_count
+                         0,    # seq_num (não usado em ACK)
+                         ack_num,
+                         0     # checksum não usado em ACK
+                         )
+    sender.sendto(header, destination_address)

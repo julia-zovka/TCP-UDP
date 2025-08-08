@@ -5,7 +5,7 @@ import struct #interpretar e montar a estrututra dos pacotes
 
 
 from utils.checksum import find_checksum
-from utils.sending_pkts import send_packet
+from utils.sending_pkts import send_packet, send_ack
 import utils.constants as g 
 
 
@@ -85,7 +85,7 @@ def receive():
             # Caso contrário, é mensagem de dados
             if checksum != checksum_check or seq_num != ack_expected:
                 print("[ERRO] Pacote corrompido ou fora de ordem, reenviando ACK anterior")
-                send_packet('', client, (SERVER_IP, SERVER_PORT), client_ip, nickname, 0, 1 - ack_expected)
+                send_ack(client, (SERVER_IP, SERVER_PORT), 1 - ack_expected)
                 continue
 
            
@@ -103,7 +103,7 @@ def receive():
             if buffer["recebidos"] == frag_count:
                 msg = b''.join(buffer["frags"]).decode("utf-8", errors="ignore")
                 print(msg)
-                send_packet('', client, (SERVER_IP, SERVER_PORT), client_ip, nickname, 0, seq_num)
+                send_ack(client, (SERVER_IP, SERVER_PORT), seq_num)
                 ack_expected = 1 - ack_expected
                 buffer.clear()
 
@@ -145,7 +145,7 @@ while True:
 
     ## já tinha saido
     elif message.strip().lower() == "bye" and not is_conected:
-        print("Você já saiu da sala antes.")
+        print("Você nem entrou na sala ainda.")
     
 
     elif not is_conected:
